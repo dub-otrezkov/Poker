@@ -1,6 +1,8 @@
 package app
 
-import "github.com/labstack/echo"
+import (
+	"github.com/labstack/echo"
+)
 
 type App struct {
 }
@@ -9,9 +11,17 @@ func New() *App {
 	return &App{}
 }
 
-func (*App) Run() {
+type service interface {
+	Init(*echo.Echo)
+}
+
+func (*App) Run(port string, services ...service) {
 
 	e := echo.New()
 
-	e.Logger.Fatal(e.Start("8080"))
+	for _, s := range services {
+		s.Init(e)
+	}
+
+	e.Logger.Fatal(e.Start(port))
 }
