@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>главная</title>
+
+    <link rel="stylesheet" href="/static/styles/general.css">
+</head>
+<body>
+
+    <script type="module">
+        import UserData from '/static/scripts/auth_data.js'
+
+        document.getElementById("auth_data").append(UserData.getUserInfoHeader());
+
+    </script>
+    <div id="auth_data">
+
+    </div>
+    <h1>
+        шахматы
+    </h1>
+</body>
+</html>

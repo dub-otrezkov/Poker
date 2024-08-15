@@ -22,11 +22,10 @@ type Database struct {
 func New() (*Database, error) {
 	db := &Database{}
 
-	config := &struct {
+	config := struct {
 		addr   string
 		user   string
 		passwd string
-		bdname string
 	}{}
 
 	var exist bool
@@ -44,14 +43,13 @@ func New() (*Database, error) {
 	if !exist {
 		return nil, DBError{"no password variable"}
 	}
-	config.bdname = "Chess"
 
 	db.db, err = sql.Open("mysql", (&mysql.Config{
 		User:   config.user,
 		Passwd: config.passwd,
 		Net:    "tcp",
 		Addr:   config.addr,
-		DBName: config.bdname,
+		DBName: "Chess",
 	}).FormatDSN())
 
 	return db, err
