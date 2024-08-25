@@ -4,9 +4,9 @@ import (
 	// services
 	"fmt"
 
-	"github.com/dub-otrezkov/OschApp/pkg/auth"
 	"github.com/dub-otrezkov/chess/internal/app"
 	db "github.com/dub-otrezkov/chess/internal/database"
+	"github.com/dub-otrezkov/chess/pkg/auth"
 )
 
 func main() {

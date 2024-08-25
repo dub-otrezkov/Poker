@@ -2,10 +2,10 @@ package app
 
 import (
 	"io"
-	"net/http"
 	"text/template"
 
 	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
 )
 
 type App struct {
@@ -35,13 +35,9 @@ func (*App) Run(port string, services ...service) {
 		s.Init(e)
 	}
 
-	e.Renderer = &HTMLRenderer{template.Must(template.ParseGlob("client/**/**/*.html"))}
-
-	e.GET("/", func(c echo.Context) error {
-		return c.Render(http.StatusOK, "mainpage.html", nil)
-	})
-
-	e.Static("static", "client")
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost:3000"},
+	}))
 
 	e.Logger.Fatal(e.Start(port))
 }
