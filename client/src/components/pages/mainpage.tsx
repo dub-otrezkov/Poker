@@ -1,16 +1,20 @@
-import React from "react";
-import { useCookies } from "react-cookie";
-import AuthInfo from "../blocks/authinfo"
+import React, { useState } from "react";
+import AuthInfo from "./auth/authinfo"
+import CreateGameButton from "./gameProcess/createGameButton";
+
 
 function MainPage() {
-    let userName = useCookies(["user"])
-
     return (
         <>
             <AuthInfo />
             <h1>
-                шахматы
+                элитный покер
             </h1>
+
+            <CreateGameButton/>
+            <br/>
+
+            <button onClick={() => {window.location.replace("/getGame")}}>найти игру</button>
         </>
         
     );

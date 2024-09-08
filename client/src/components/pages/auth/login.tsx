@@ -1,9 +1,11 @@
 import React, { FormEvent, useContext, useState } from "react";
 import { useCookies } from "react-cookie";
 import { redirect } from "react-router-dom";
+import { API_URL } from "../../../constants/main";
 
 function Login() {
     let [ user, setUser ] = useCookies(["user"])
+    let [ userId, setUserId ] = useCookies(["userId"])
 
     let [err, setErr] = useState("")
 
@@ -15,9 +17,8 @@ function Login() {
         let login = d.get("login")?.toString(), password = d.get("password")?.toString();
 
         if (login !== undefined && login.length > 0 && password !== undefined && password.length > 0) {
-            fetch(`http://localhost:52/login`, {
+            fetch(`${API_URL}/login`, {
                 method: "POST",
-                mode: "cors",
                 headers: {
                     Accept: 'application/json',
                 },
@@ -26,15 +27,16 @@ function Login() {
                     password: password,
                 })
             })
-            .then(resp => {
-                if (resp.ok) return null;
-                else return resp.json();
-            })
-            .then(resp => {
-                if (resp === null) {
+            .then(async resp =>  {
+                if (resp.ok) {
+                    let r = await resp.json();
                     setUser("user", login);
 
-                    return document.location.href = "/";
+                    setUserId("userId", r["id"]);
+
+                    console.log(r);
+
+                    window.location.replace("/");
                 } else {
                     setErr("неправильный логин или пароль");
                 }

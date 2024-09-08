@@ -1,8 +1,9 @@
 import React, { FormEvent, useContext, useState } from "react";
 import { useCookies } from "react-cookie";
-
+import { API_URL } from "../../../constants/main";
 function Register() {
-    let [ userName, setUserName ] = useCookies(["user"])
+    let [ user, setUser ] = useCookies(["user"])
+    let [ userId, setUserId ] = useCookies(["userId"])
 
     let [err, setErr] = useState("")
 
@@ -17,13 +18,13 @@ function Register() {
         if (password !== undefined) {
             if (!(/^(?=.*[a-zA-Z])(?=.*\d).+$/.test(password))) {
                 password = "";
-                err = "в пароле должна быть хотя одна буква и одна цифра";
+                setErr("в пароле должна быть хотя одна буква и одна цифра");
             }
         }
 
         if (login !== undefined && login.length > 0 && password !== undefined && password.length > 0) {
             
-            fetch(`http://localhost:52/register`, {
+            fetch(`${API_URL}/register`, {
                 method: "POST",
                 mode: "cors",
                 headers: {
@@ -34,23 +35,20 @@ function Register() {
                     password: password,
                 })
             })
-            .then(resp => {
-                if (resp.ok) return null;
-                else return resp.text();
+            .then(async resp => {
+                if (resp.ok) {
+                let r = await resp.json();
+                setUser("user", login);
+
+                setUserId("userId", r["id"]);
+
+                console.log(r);
+
+                document.location.href = "/";
+            } else {
+                setErr("неправильный логин или пароль");
+            }
             })
-            .then(resp => {
-                console.log(resp);
-
-                if (resp === null) {
-                    setUserName("user", login);
-
-                    document.location.href = "/";
-                } else {
-                    err = resp;
-                }
-            })
-
-            
         }
     }
 

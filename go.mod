@@ -11,6 +11,7 @@ require (
 	filippo.io/edwards25519 v1.1.0 // indirect
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible // indirect
 	github.com/dub-otrezkov/OschApp v0.0.0-20240814093144-b3f50cf3d46a // indirect
+	github.com/gorilla/websocket v1.5.3 // indirect
 	github.com/labstack/gommon v0.4.2 // indirect
 	github.com/mattn/go-colorable v0.1.13 // indirect
 	github.com/mattn/go-isatty v0.0.20 // indirect

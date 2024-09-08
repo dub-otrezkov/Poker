@@ -24,7 +24,7 @@ func (d *Database) GetUser(login string) (map[string]interface{}, error) {
 
 		err := res.Scan(&id, &pswd)
 
-		return map[string]interface{}{"id": id, "password": pswd}, err
+		return map[string]interface{}{"id": id, "pswd": pswd}, err
 	} else {
 		return nil, AuthDBErr{"requested user doesn't exist"}
 	}

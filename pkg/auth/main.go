@@ -11,7 +11,7 @@ import (
 )
 
 type Database interface {
-	GetUser(string) (map[string]interface{}, error)
+	GetUser(login string) (map[string]interface{}, error)
 	RegisterUser(string, string) error
 }
 
@@ -24,10 +24,6 @@ func New(db Database) *Auth {
 }
 
 func (auth *Auth) Init(e *echo.Echo) {
-	e.GET("/test_auth", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{"a": "d", "b": "c"})
-	})
-
 	e.POST("/login", auth.Login)
 	e.POST("/register", auth.Register)
 }
@@ -43,13 +39,13 @@ func (auth *Auth) Login(c echo.Context) error {
 	}
 	cor, err := auth.db.GetUser(qr["login"])
 
-	c.Logger().Print(cor)
-	c.Logger().Print(qr)
+	// c.Logger().Print(cor)
+	// c.Logger().Print(qr)
 
-	if err == nil && cor["password"] == hasher.CalcSha256(qr["password"]) {
-		return nil
+	if err == nil && cor["pswd"] == hasher.CalcSha256(qr["password"]) {
+		return c.JSON(http.StatusOK, map[string]interface{}{"id": cor["id"]})
 	} else {
-		return c.JSON(http.StatusBadRequest, "неправильный пароль")
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{"verdict": "неправильный пароль"})
 	}
 }
 
@@ -62,7 +58,7 @@ func (auth *Auth) Register(c echo.Context) error {
 	qr := make(map[string]string)
 	err := json.Unmarshal(body, &qr)
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{"err": err.Error()})
 	}
 
 	qr["password"] = hasher.CalcSha256(qr["password"])
@@ -70,7 +66,7 @@ func (auth *Auth) Register(c echo.Context) error {
 	err = auth.db.RegisterUser(qr["login"], qr["password"])
 
 	if err != nil {
-		return c.JSON(http.StatusBadRequest, err.Error())
+		return c.JSON(http.StatusBadRequest, map[string]interface{}{"err": err.Error()})
 	}
 
 	return auth.Login(c)
