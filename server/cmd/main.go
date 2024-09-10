@@ -4,11 +4,11 @@ import (
 	// services
 	"fmt"
 
-	"github.com/dub-otrezkov/chess/internal/app"
-	ws "github.com/dub-otrezkov/chess/internal/ws"
+	"github.com/dub-otrezkov/chess/server/internal/app"
+	ws "github.com/dub-otrezkov/chess/server/internal/ws"
 
-	db "github.com/dub-otrezkov/chess/internal/database"
-	"github.com/dub-otrezkov/chess/pkg/auth"
+	db "github.com/dub-otrezkov/chess/server/internal/database"
+	"github.com/dub-otrezkov/chess/server/pkg/auth"
 )
 
 func main() {
