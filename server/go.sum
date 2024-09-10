@@ -8,6 +8,8 @@ github.com/dub-otrezkov/OschApp v0.0.0-20240814093144-b3f50cf3d46a h1:HV6jhs2Qy+
 github.com/dub-otrezkov/OschApp v0.0.0-20240814093144-b3f50cf3d46a/go.mod h1:p/LpLiCgZWdFCZ8oVFGzBzlPxlDgNRfRobnqiEQij2A=
 github.com/dub-otrezkov/chess v0.0.0-20240812160056-e22af848c0c4 h1:h1l47YMm29RlxYlkJmYTPjl4KIxIiQ+ov95tpPu5ZtY=
 github.com/dub-otrezkov/chess v0.0.0-20240812160056-e22af848c0c4/go.mod h1:Ri9ITqhQ7DWQVrCknS2/ok8zoXeu+5ON2CfsHTmRWiM=
+github.com/dub-otrezkov/chess v0.0.0-20240910202237-c7e57f7e240e h1:J3SArwXg0UugDEbLey8Cjbnbyha49PuWrs1bxQSON3M=
+github.com/dub-otrezkov/chess v0.0.0-20240910202237-c7e57f7e240e/go.mod h1:l3QBB+/aOkapdYR8P1JQCrIwXw99fA5NKgYiBBBuhfo=
 github.com/go-sql-driver/mysql v1.8.1 h1:LedoTUt/eveggdHS9qUFC1EFSa8bU2+1pZjSRpvNJ1Y=
 github.com/go-sql-driver/mysql v1.8.1/go.mod h1:wEBSXgmK//2ZFJyE+qWnIsVGmvmEKlqwuVSjsCm7DZg=
 github.com/gorilla/websocket v1.5.3 h1:saDtZ6Pbx/0u+bgYQ3q96pZgCzfhKXGPqt7kZ72aNNg=
