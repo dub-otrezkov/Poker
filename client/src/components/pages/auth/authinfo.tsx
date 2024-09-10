@@ -4,9 +4,8 @@ import { useCookies } from "react-cookie";
 
 export default function AuthInfo() {
     let [userName, setUserName] = useCookies(["user"])
-
     
-    if (userName.user == "") {
+    if (userName.user == "" || userName.user === undefined) {
         return (
             <div>
                 <p>не вошли в приложение</p>

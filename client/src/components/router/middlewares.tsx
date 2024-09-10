@@ -8,7 +8,7 @@ export const checkAuth = function(next: MWF) {
 
         let [user, setUser] = useCookies(["user"])
 
-        if (user.user.length > 0) {
+        if (user.user !== undefined && user.user.length > 0) {
             return next();
         }
 
@@ -26,7 +26,7 @@ export const checkNotAuth = function(next: MWF) {
 
         let [user, setUser] = useCookies(["user"])
 
-        if (user.user.length == 0) {
+        if (user.user === undefined || user.user.length == 0) {
             return next();
         }
 

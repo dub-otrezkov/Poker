@@ -23,6 +23,7 @@ type Client struct {
 type Room struct {
 	cl    map[int]*Client
 	ready map[int]interface{}
+	game  *GameSession
 }
 
 type Hub struct {
@@ -55,13 +56,8 @@ func (h *Hub) Run() {
 			fmt.Println("left", cl.userId)
 			if _, ok := h.rooms[cl.roomId]; ok {
 
-				// fmt.Println("DELETING CLIENT", h.rooms[cl.roomId])
-
 				delete(h.rooms[cl.roomId].cl, cl.userId)
-				// delete(h.rooms[cl.roomId].ready, cl.userId)
 				h.rooms[cl.roomId].ready = make(map[int]interface{})
-
-				// fmt.Println("DELETED", h.rooms[cl.roomId])
 
 				for _, el := range h.rooms[cl.roomId].cl {
 					el.messages <- Message{RoomId: cl.roomId, Act: "left", UserId: cl.userId, Value: fmt.Sprintf("user %v left room %v", cl.userId, cl.roomId)}
@@ -71,11 +67,20 @@ func (h *Hub) Run() {
 		case ms := <-h.conns:
 			fmt.Println("hub got message:", ms)
 
-			if _, ok := h.rooms[ms.RoomId]; ok {
-				for _, el := range h.rooms[ms.RoomId].cl {
-					el.messages <- ms
+			switch ms.Act {
+			case "start":
+				h.rooms[ms.RoomId].game = NewGameSession(h.rooms[ms.RoomId])
+				h.rooms[ms.RoomId].game.moves <- Message{Act: "~start"}
+
+				go h.rooms[ms.RoomId].game.Run()
+			default:
+				if _, ok := h.rooms[ms.RoomId]; ok {
+					for _, el := range h.rooms[ms.RoomId].cl {
+						el.messages <- ms
+					}
 				}
 			}
+
 		}
 	}
 }
@@ -95,16 +100,27 @@ func (cl *Client) ReadMessages(h *Hub) {
 			break
 		}
 
-		switch cont.Act {
-		case "ready":
-			h.rooms[cl.roomId].ready[cl.userId] = nil
+		if cont.Act[0] == '~' {
+			h.rooms[cl.roomId].game.moves <- cont
+		} else {
 
-			if len(h.rooms[cl.roomId].ready) == len(h.rooms[cl.roomId].cl) {
+			switch cont.Act {
 
-				h.conns <- Message{RoomId: cl.roomId, UserId: cl.userId, Act: "start", Value: "ready to start"}
+			case "ready":
+
+				h.rooms[cl.roomId].ready[cl.userId] = nil
+				if len(h.rooms[cl.roomId].ready) == len(h.rooms[cl.roomId].cl) {
+
+					h.conns <- Message{RoomId: cl.roomId, Act: "start", Value: "ready to start"}
+				}
+
+			case "move":
+
+				h.rooms[cl.roomId].game.moves <- cont
+			default:
+
+				h.conns <- cont
 			}
-		default:
-			h.conns <- cont
 		}
 	}
 }

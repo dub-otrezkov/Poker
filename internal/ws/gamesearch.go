@@ -48,6 +48,7 @@ func (h *Handler) CreateRoom(c echo.Context) error {
 	h.h.rooms[h.h.lstRoom] = &Room{
 		cl:    make(map[int]*Client),
 		ready: make(map[int]interface{}),
+		game:  nil,
 	}
 	h.h.lstRoom++
 

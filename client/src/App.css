@@ -3,14 +3,19 @@
 }
 
 body {
-    background-color: green;
+    background-color: rgb(27, 107, 27);
+    margin: 20px;
 }
 
 .big_link {
     display: block;
     width: 100%;
-    background-color: red;
+    background-color: rgb(212, 78, 78);
     padding: 5px;
+}
+
+p {
+    margin: 3px;
 }
 
 
@@ -21,4 +26,27 @@ h1, h2, h3, h4, h5, h6 {
 button {
     font-family: "Fira code";
     border: none;
+    background-color: rgb(212, 78, 78);
+    text-align: left;
+}
+
+
+#red {
+    background-color: rgb(212, 78, 78);
+    color: black;
+}
+
+#black {
+    background-color: rgb(17, 17, 17);
+    color: rgb(192, 192, 192);
+}
+
+button:hover, #black:hover, #red:hover {
+    background-color: white;
+    color: black;
+}
+
+
+#inActive {
+    display: none;
 }

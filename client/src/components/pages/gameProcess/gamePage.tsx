@@ -1,6 +1,7 @@
 import React, {useContext, useEffect, useState} from "react";
 import { useCookies } from "react-cookie";
 import { API_URL, WS_URL } from "../../../constants/main";
+import Card from "./cards/cardRenderer";
 
 type Message = {
     action: string,
@@ -27,9 +28,9 @@ export default function GamePage(props: Map<string, string>) {
 
     let [isStarted, setIsStarted] = useState<boolean>(false);
 
-    useEffect(() => {
-        
+    let [cards, setCards] = useState<Array<() => React.ReactNode>>([() => (<>jjjj</>)])
 
+    useEffect(() => {
         if (ws === null || !ws.OPEN) {
             alert("err");
             window.location.replace("/");
@@ -51,19 +52,26 @@ export default function GamePage(props: Map<string, string>) {
             setSt([...st, m.value])
 
             switch (m.action) {
-                case "start":
-                    setIsStarted(true);
-                    break
-                case "left":
-                    setIsStarted(false);
-                    break
+            case "~start":
+                setIsStarted(true);
+                break
+            case "left":
+                setIsStarted(false);
+                break
+            case "~distr":
+                let [v1, c1, v2, c2] = m.value.split(" ");
+                setCards([() => Card({v: parseInt(v1), c: parseInt(c1)}), () => Card({v: parseInt(v2), c: parseInt(c2)})])
+                break;
             }
         }
     }, [st])
 
+    
+    let [vis, setVis] = useState<Boolean>(false);
+
     return (
-        <>
-            <a className="big_link" href="/">назад</a>
+        <div>
+            <button onClick={() => {window.location.replace("/")}}>назад</button>
             <p>комната №{id}</p>
             <h3>в игре сейчас пользователи: {players.map((elem) => (
                     <>{elem}, </>
@@ -77,7 +85,7 @@ export default function GamePage(props: Map<string, string>) {
                 <p>{elem}</p>
             ))}
 
-            <button onClick={
+            <button id={isStarted ? "inActive":""} onClick={
                 () => {
                     if (ws === null) return;
                     if (isStarted) return;
@@ -92,6 +100,29 @@ export default function GamePage(props: Map<string, string>) {
             }>
                 готов
             </button>
-        </>
+
+            {((isStarted) => {
+                if (!isStarted) {
+                    return (
+                        <>
+                            <h1>игра еще не началась</h1>
+                        </>
+                    )
+                }
+                return (
+                    <>
+                        <h1>игра началась</h1>
+
+                        <div>
+                            <button onClick={() => {setVis(!vis)}}>показать карты</button>
+                                <br />
+                            <>{cards.map(elem => (vis ? elem():() => (<></>)))}</>
+                        </div>
+
+
+                    </>
+                )
+            })(isStarted)}
+        </div>
     )
 }

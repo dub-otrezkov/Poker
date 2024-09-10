@@ -1,6 +1,5 @@
 import React, { FormEvent, useContext, useState } from "react";
 import { useCookies } from "react-cookie";
-import { redirect } from "react-router-dom";
 import { API_URL } from "../../../constants/main";
 
 function Login() {
