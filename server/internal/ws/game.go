@@ -113,22 +113,25 @@ func NewGameSession(r *Room) *GameSession {
 }
 
 func (g *GameSession) Run() {
+	defer close(g.moves)
 
 	for {
 		cl := <-g.moves
 
-		switch cl.Act[1:] {
+		switch cl.Act {
 		case "start":
 			for _, el := range g.players {
-				el.client.messages <- Message{Act: "~start"}
+				el.client.messages <- Message{Act: "start"}
 			}
 			for el := range g.players {
 
 				g.players[el].cards = [2]Card{g.pop(), g.pop()}
 
-				g.moves <- Message{RoomId: -1, Act: "~distr", UserId: el, Value: fmt.Sprintf("%v %v %v %v", g.players[el].cards[0].rank, g.players[el].cards[0].suit, g.players[el].cards[1].rank, g.players[el].cards[1].suit)}
+				g.moves <- Message{RoomId: -1, Act: "distr", UserId: el, Value: fmt.Sprintf("%v %v %v %v", g.players[el].cards[0].rank, g.players[el].cards[0].suit, g.players[el].cards[1].rank, g.players[el].cards[1].suit)}
 			}
 		case "distr":
+			fmt.Println(cl)
+
 			g.players[cl.UserId].client.messages <- cl
 
 		}

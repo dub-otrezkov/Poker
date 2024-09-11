@@ -20,10 +20,7 @@ func main() {
 	}
 
 	a := app.New()
-	hub := ws.NewHub()
-	wsHandler := ws.NewHandler(hub)
-
-	go hub.Run()
+	wsHandler := ws.NewHandler()
 
 	auth := auth.New(database)
 

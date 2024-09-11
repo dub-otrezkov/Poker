@@ -1,7 +1,6 @@
 package ws
 
 import (
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -18,8 +17,8 @@ var upgrader = websocket.Upgrader{
 }
 
 func (h *Handler) GetRooms(c echo.Context) error {
-	al := make([]int, 0, len(h.h.rooms))
-	for el := range h.h.rooms {
+	al := make([]int, 0, len(h.rooms))
+	for el := range h.rooms {
 		al = append(al, el)
 	}
 
@@ -35,8 +34,8 @@ func (h *Handler) getRoomMembers(c echo.Context) error {
 
 	res := []int{}
 
-	if _, ok := h.h.rooms[id]; ok {
-		for _, el := range h.h.rooms[id].cl {
+	if _, ok := h.rooms[id]; ok {
+		for _, el := range h.rooms[id].cl {
 			res = append(res, el.userId)
 		}
 	}
@@ -45,14 +44,19 @@ func (h *Handler) getRoomMembers(c echo.Context) error {
 }
 
 func (h *Handler) CreateRoom(c echo.Context) error {
-	h.h.rooms[h.h.lstRoom] = &Room{
+	h.lstRoom++
+	h.rooms[h.lstRoom] = &Room{
 		cl:    make(map[int]*Client),
 		ready: make(map[int]interface{}),
 		game:  nil,
-	}
-	h.h.lstRoom++
 
-	return c.JSON(http.StatusOK, map[string]interface{}{"id": h.h.lstRoom - 1})
+		alerts: make(chan Message, 100),
+		enter:  make(chan *Client, 100),
+		leave:  make(chan *Client, 100),
+	}
+	go h.rooms[h.lstRoom].Run()
+
+	return c.JSON(http.StatusOK, map[string]interface{}{"id": h.lstRoom})
 }
 
 func (h *Handler) EnterRoom(c echo.Context) error {
@@ -72,17 +76,10 @@ func (h *Handler) EnterRoom(c echo.Context) error {
 		messages: make(chan Message),
 	}
 
-	h.h.enter <- cl
-
-	h.h.conns <- Message{
-		Act:    "enter",
-		UserId: userId,
-		RoomId: roomId,
-		Value:  fmt.Sprintf("user %v entered room", userId),
-	}
+	h.rooms[roomId].enter <- cl
 
 	go cl.WriteMessages()
-	go cl.ReadMessages(h.h)
+	go cl.ReadMessages(h.rooms[roomId])
 
 	return c.JSON(http.StatusOK, nil)
 }

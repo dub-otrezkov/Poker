@@ -6,11 +6,18 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+type RawMessage struct {
+	Act   string `json:"action"`
+	Value string `json:"value"`
+	Type  string `json:"type"`
+}
+
 type Message struct {
-	RoomId int    `json:"roomId"`
-	Act    string `json:"action"`
-	UserId int    `json:"userId"`
-	Value  string `json:"value"`
+	Act    string
+	Value  string
+	RoomId int
+	UserId int
+	Type   string
 }
 
 type Client struct {
@@ -24,115 +31,102 @@ type Room struct {
 	cl    map[int]*Client
 	ready map[int]interface{}
 	game  *GameSession
+
+	alerts chan Message
+	enter  chan *Client
+	leave  chan *Client
 }
 
-type Hub struct {
-	lstRoom int
-	rooms   map[int]*Room
-	conns   chan Message
-	enter   chan *Client
-	leave   chan *Client
-}
+func (r *Room) Run() {
+	defer close(r.alerts)
+	defer close(r.enter)
+	defer close(r.leave)
 
-func NewHub() *Hub {
-	return &Hub{
-		lstRoom: 1,
-		rooms:   make(map[int]*Room, 0),
-		conns:   make(chan Message),
-		enter:   make(chan *Client),
-		leave:   make(chan *Client),
-	}
-}
-
-func (h *Hub) Run() {
 	for {
 		select {
-		case cl := <-h.enter:
-			if _, ok := h.rooms[cl.roomId]; ok {
-				h.rooms[cl.roomId].cl[cl.userId] = cl
-			}
-		case cl := <-h.leave:
+		case cl := <-r.enter:
 
-			fmt.Println("left", cl.userId)
-			if _, ok := h.rooms[cl.roomId]; ok {
-
-				delete(h.rooms[cl.roomId].cl, cl.userId)
-				h.rooms[cl.roomId].ready = make(map[int]interface{})
-
-				for _, el := range h.rooms[cl.roomId].cl {
-					el.messages <- Message{RoomId: cl.roomId, Act: "left", UserId: cl.userId, Value: fmt.Sprintf("user %v left room %v", cl.userId, cl.roomId)}
-				}
+			r.alerts <- Message{
+				Act:    "enter",
+				Value:  fmt.Sprintf("user %v enter room #%v", cl.userId, cl.roomId),
+				RoomId: cl.roomId,
+				UserId: cl.userId,
 			}
 
-		case ms := <-h.conns:
-			fmt.Println("hub got message:", ms)
+			r.cl[cl.userId] = cl
+		case cl := <-r.leave:
 
-			switch ms.Act {
-			case "start":
-				h.rooms[ms.RoomId].game = NewGameSession(h.rooms[ms.RoomId])
-				h.rooms[ms.RoomId].game.moves <- Message{Act: "~start"}
+			delete(r.cl, cl.userId)
 
-				go h.rooms[ms.RoomId].game.Run()
-			default:
-				if _, ok := h.rooms[ms.RoomId]; ok {
-					for _, el := range h.rooms[ms.RoomId].cl {
+			r.alerts <- Message{
+				Act:    "left",
+				Value:  fmt.Sprintf("user %v left room #%v", cl.userId, cl.roomId),
+				RoomId: cl.roomId,
+				UserId: cl.userId,
+			}
+
+		case ms := <-r.alerts:
+			if ms.Type == "game" {
+				r.game.moves <- ms
+			} else {
+
+				fmt.Println(ms)
+
+				switch ms.Act {
+				case "ready":
+					r.ready[ms.UserId] = nil
+
+					if len(r.ready) == len(r.cl) {
+
+						fmt.Println("STARTTTTT")
+
+						r.game = NewGameSession(r)
+						r.game.moves <- Message{Act: "start", Value: "game started"}
+
+						go r.game.Run()
+					}
+				default:
+					for _, el := range r.cl {
 						el.messages <- ms
 					}
 				}
 			}
-
 		}
 	}
 }
 
-func (cl *Client) ReadMessages(h *Hub) {
+func (cl *Client) ReadMessages(r *Room) {
 	defer func() {
-		h.leave <- cl
+		r.leave <- cl
 		cl.conn.Close()
 	}()
 
 	for {
-		cont := Message{}
+		cont := RawMessage{}
 		err := cl.conn.ReadJSON(&cont)
 
 		if err != nil {
-			fmt.Println("readerr", err.Error())
+			fmt.Println("websockets.go:ReadMessages : ", err.Error())
 			break
 		}
 
-		if cont.Act[0] == '~' {
-			h.rooms[cl.roomId].game.moves <- cont
-		} else {
-
-			switch cont.Act {
-
-			case "ready":
-
-				h.rooms[cl.roomId].ready[cl.userId] = nil
-				if len(h.rooms[cl.roomId].ready) == len(h.rooms[cl.roomId].cl) {
-
-					h.conns <- Message{RoomId: cl.roomId, Act: "start", Value: "ready to start"}
-				}
-
-			case "move":
-
-				h.rooms[cl.roomId].game.moves <- cont
-			default:
-
-				h.conns <- cont
-			}
+		r.alerts <- Message{
+			Act:    cont.Act,
+			Value:  cont.Value,
+			Type:   cont.Type,
+			RoomId: cl.roomId,
+			UserId: cl.userId,
 		}
 	}
 }
 
 func (cl *Client) WriteMessages() {
-	defer cl.conn.Close()
 
 	for {
 
 		ms := <-cl.messages
 
-		err := cl.conn.WriteJSON(ms)
+		err := cl.conn.WriteJSON(RawMessage{Act: ms.Act, Value: ms.Value})
 
 		if err != nil {
 			fmt.Println(err.Error())

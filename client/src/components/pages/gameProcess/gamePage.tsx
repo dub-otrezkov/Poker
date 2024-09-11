@@ -4,10 +4,8 @@ import { API_URL, WS_URL } from "../../../constants/main";
 import Card from "./cards/cardRenderer";
 
 type Message = {
-    action: string,
-    userId: string,
-    roomId: string,
-    value: string,
+    Act: string,
+    Value: string,
 }
 
 export default function GamePage(props: Map<string, string>) {
@@ -49,17 +47,17 @@ export default function GamePage(props: Map<string, string>) {
 
         ws.onmessage = (e: MessageEvent) => {
             let m: Message = JSON.parse(e.data);
-            setSt([...st, m.value])
+            setSt([...st, m.Value])
 
-            switch (m.action) {
-            case "~start":
+            switch (m.Act) {
+            case "start":
                 setIsStarted(true);
                 break
             case "left":
                 setIsStarted(false);
                 break
-            case "~distr":
-                let [v1, c1, v2, c2] = m.value.split(" ");
+            case "distr":
+                let [v1, c1, v2, c2] = m.Value.split(" ");
                 setCards([() => Card({v: parseInt(v1), c: parseInt(c1)}), () => Card({v: parseInt(v2), c: parseInt(c2)})])
                 break;
             }
@@ -79,11 +77,6 @@ export default function GamePage(props: Map<string, string>) {
             </h3>
             
             <br/>
-
-            <h1>игра</h1>
-            {st.map((elem) => (
-                <p>{elem}</p>
-            ))}
 
             <button id={isStarted ? "inActive":""} onClick={
                 () => {

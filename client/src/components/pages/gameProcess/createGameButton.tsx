@@ -22,10 +22,10 @@ export default function CreateGameButton() {
         })
         .then(resp => {
             if (resp.ok) return resp.json();
-            else return {"id": 0}
+            else return {"id": -1}
         })
         .then(async resp => {
-            if (resp["id"] === 0) {
+            if (resp["id"] === undefined || resp["id"] == -1) {
                 alert("уже создал игру");
             } else {
                 alert("создал игру");

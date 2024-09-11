@@ -10,11 +10,12 @@ import (
 )
 
 type Handler struct {
-	h *Hub
+	lstRoom int
+	rooms   map[int]*Room
 }
 
-func NewHandler(h *Hub) *Handler {
-	return &Handler{h: h}
+func NewHandler() *Handler {
+	return &Handler{rooms: make(map[int]*Room)}
 }
 
 func (ws *Handler) Init(e *echo.Echo) {
