@@ -73,7 +73,7 @@ func (h *Handler) EnterRoom(c echo.Context) error {
 		roomId:   roomId,
 		userId:   userId,
 		conn:     conn,
-		messages: make(chan Message),
+		messages: make(chan Message, 100),
 	}
 
 	h.rooms[roomId].enter <- cl

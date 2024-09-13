@@ -48,7 +48,7 @@ func (r *Room) Run() {
 
 			r.alerts <- Message{
 				Act:    "enter",
-				Value:  fmt.Sprintf("user %v enter room #%v", cl.userId, cl.roomId),
+				Value:  fmt.Sprint(cl.userId),
 				RoomId: cl.roomId,
 				UserId: cl.userId,
 			}
@@ -60,25 +60,24 @@ func (r *Room) Run() {
 
 			r.alerts <- Message{
 				Act:    "left",
-				Value:  fmt.Sprintf("user %v left room #%v", cl.userId, cl.roomId),
+				Value:  fmt.Sprint(cl.userId),
 				RoomId: cl.roomId,
 				UserId: cl.userId,
 			}
 
 		case ms := <-r.alerts:
 			if ms.Type == "game" {
+				fmt.Println(ms)
+
 				r.game.moves <- ms
 			} else {
 
-				fmt.Println(ms)
-
 				switch ms.Act {
 				case "ready":
+
 					r.ready[ms.UserId] = nil
 
 					if len(r.ready) == len(r.cl) {
-
-						fmt.Println("STARTTTTT")
 
 						r.game = NewGameSession(r)
 						r.game.moves <- Message{Act: "start", Value: "game started"}
@@ -86,6 +85,7 @@ func (r *Room) Run() {
 						go r.game.Run()
 					}
 				default:
+
 					for _, el := range r.cl {
 						el.messages <- ms
 					}
@@ -106,7 +106,7 @@ func (cl *Client) ReadMessages(r *Room) {
 		err := cl.conn.ReadJSON(&cont)
 
 		if err != nil {
-			fmt.Println("websockets.go:ReadMessages : ", err.Error())
+			fmt.Println(err.Error())
 			break
 		}
 
@@ -127,10 +127,8 @@ func (cl *Client) WriteMessages() {
 		ms := <-cl.messages
 
 		err := cl.conn.WriteJSON(RawMessage{Act: ms.Act, Value: ms.Value})
-
 		if err != nil {
 			fmt.Println(err.Error())
-
 			break
 		}
 	}

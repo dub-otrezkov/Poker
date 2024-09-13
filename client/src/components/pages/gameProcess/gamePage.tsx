@@ -1,11 +1,11 @@
-import React, {useContext, useEffect, useState} from "react";
+import React, {useContext, useEffect, useMemo, useState} from "react";
 import { useCookies } from "react-cookie";
 import { API_URL, WS_URL } from "../../../constants/main";
 import Card from "./cards/cardRenderer";
 
 type Message = {
-    Act: string,
-    Value: string,
+    action: string,
+    value: string,
 }
 
 export default function GamePage(props: Map<string, string>) {
@@ -16,21 +16,17 @@ export default function GamePage(props: Map<string, string>) {
         wsSet(new WebSocket(`${WS_URL}/enterRoom/${localStorage.getItem("wslink") || ""}`))
     }
 
-    const [st, setSt] = useState<Array<any>>([]);
-
     let id = parseInt((props.get("id") || "0"))
 
+    const [st, setSt] = useState<Array<any>>([]);
     const [players, setPlayers] = useState<Array<number>>([]);
-
     let [userId, setUserId] = useCookies(["userId"])
-
     let [isStarted, setIsStarted] = useState<boolean>(false);
-
     let [cards, setCards] = useState<Array<() => React.ReactNode>>([() => (<>jjjj</>)])
+    let [bid, setBid] = useState<{show: Boolean, bid: number}>({show: false, bid: 0})
 
     useEffect(() => {
         if (ws === null || !ws.OPEN) {
-            alert("err");
             window.location.replace("/");
             return
         }
@@ -47,22 +43,42 @@ export default function GamePage(props: Map<string, string>) {
 
         ws.onmessage = (e: MessageEvent) => {
             let m: Message = JSON.parse(e.data);
-            setSt([...st, m.Value])
+            setSt([...st, m.value])
 
-            switch (m.Act) {
+            switch (m.action) {
             case "start":
                 setIsStarted(true);
                 break
+            case "enter":
+                setIsStarted(false);
+                let cp = players;
+                if (cp.indexOf(parseInt(m.value)) == -1) {
+                    cp.push(parseInt(m.value))
+                }
+                setPlayers(cp);
+                break
             case "left":
                 setIsStarted(false);
+                let nw: Array<number> = [];
+                for (let i = 0; i < players.length; i++) {
+                    if (players[i] != parseInt(m.value)) {
+                        nw.push(players[i])
+                    }
+                }
+                setPlayers(nw);
                 break
             case "distr":
-                let [v1, c1, v2, c2] = m.Value.split(" ");
+                let [v1, c1, v2, c2] = m.value.split(" ");
                 setCards([() => Card({v: parseInt(v1), c: parseInt(c1)}), () => Card({v: parseInt(v2), c: parseInt(c2)})])
+                break;
+            case "make_bid":
+                if (m.value == "allin") {
+
+                }
                 break;
             }
         }
-    }, [st])
+    }, [])
 
     
     let [vis, setVis] = useState<Boolean>(false);
@@ -113,6 +129,18 @@ export default function GamePage(props: Map<string, string>) {
                         </div>
 
 
+                        {(() => {
+                            if (!bid.show) return (<></>)
+                            if (bid.bid < 0) {
+                                return (
+                                    <button onClick={() => {
+                                        ws?.send(JSON.stringify({action: "bid", value: toString()}))
+                                    }}>
+                                        All-in
+                                    </button>
+                                )
+                            }
+                        })()}
                     </>
                 )
             })(isStarted)}

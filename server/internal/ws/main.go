@@ -37,3 +37,48 @@ func getReq(r *http.Request, obj any) error {
 	err = json.Unmarshal(body, obj)
 	return err
 }
+
+func less(a, b []int) bool {
+	for i := 0; i < max(len(a), len(b)); i++ {
+		if i == len(a) {
+			return true
+		}
+		if i == len(b) {
+			return false
+		}
+
+		if a[i] != b[i] {
+			return (a[i] < b[i])
+		}
+	}
+
+	return true
+}
+
+func max_ar(a []int) int {
+	ans := a[0]
+	for _, el := range a {
+		ans = max(ans, el)
+	}
+	return ans
+}
+
+func min_ar(a []int) int {
+	ans := a[0]
+	for _, el := range a {
+		ans = min(ans, el)
+	}
+	return ans
+}
+
+func eq(a, b []int) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+	return true
+}
