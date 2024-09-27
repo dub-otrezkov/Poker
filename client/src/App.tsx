@@ -13,6 +13,7 @@ import { checkAuth, checkNotAuth } from './components/router/middlewares';
 function App() {
   	return (
 		<>
+				{/* <Route path='/game/:id' page={GamePage} mws={[checkAuth]}/> */}
 			<Route path='/' page={MainPage} />
 
 			<>
@@ -26,7 +27,6 @@ function App() {
 				<Route path='/game/:id' page={GamePage} mws={[checkAuth]}/>
 			</>
 		</>
-		
 	);
 }
 

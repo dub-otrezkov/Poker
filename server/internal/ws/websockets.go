@@ -64,6 +64,7 @@ func (r *Room) Run() {
 				RoomId: cl.roomId,
 				UserId: cl.userId,
 			}
+			r.ready = make(map[int]interface{})
 
 		case ms := <-r.alerts:
 			if ms.Type == "game" {

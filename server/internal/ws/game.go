@@ -134,6 +134,8 @@ func (g *GameSession) Run() {
 	for alive {
 		cl := <-g.moves
 
+		fmt.Println("::::", cl)
+
 		switch cl.Act {
 		case "start":
 
@@ -207,9 +209,13 @@ func (g *GameSession) Run() {
 							g.players[cur_u].cur_bid = b
 							g.players[cur_u].bal -= b
 
-							if g.players[cur_u].bal == 0 {
-								cnt_u--
-							}
+						} else if b == -1 {
+							b = g.players[cur_u].bal
+							g.cur_bid = max(g.cur_bid, b)
+							g.bank += b
+							g.players[cur_u].cur_bid = b
+							g.players[cur_u].bal -= b
+							cnt_u--
 						} else {
 							g.players[cur_u].active = false
 							cnt_u--
@@ -408,6 +414,13 @@ func (g *GameSession) Run() {
 
 			val, _ := strconv.Atoi(cl.Value)
 			bids <- val
+
+			for _, el := range g.players {
+				el.client.messages <- Message{
+					Act:   "new_bid",
+					Value: fmt.Sprintf("%v %v", cl.UserId, val),
+				}
+			}
 		case "add_card":
 
 			for _, el := range g.players {
