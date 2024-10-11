@@ -6,8 +6,49 @@ import (
 	"io"
 	"net/http"
 
+	"github.com/gorilla/websocket"
 	"github.com/labstack/echo"
 )
+
+type JSONContent map[string]any
+
+type MessageType string
+
+const (
+	Game    MessageType = "game"
+	Default             = ""
+)
+
+type RawMessage struct {
+	Act   string      `json:"action"`
+	Value string      `json:"value"`
+	Type  MessageType `json:"type"`
+}
+
+type Message struct {
+	Act    string
+	Value  JSONContent
+	RoomId int
+	UserId int
+	Type   MessageType
+}
+
+type Client struct {
+	roomId   int
+	userId   int
+	conn     *websocket.Conn
+	messages chan Message
+}
+
+type Room struct {
+	cl    map[int]*Client
+	ready map[int]interface{}
+	game  *GameSession
+
+	alerts chan Message
+	enter  chan *Client
+	leave  chan *Client
+}
 
 type Handler struct {
 	lstRoom int

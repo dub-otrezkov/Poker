@@ -1,41 +1,9 @@
 package ws
 
 import (
+	"encoding/json"
 	"fmt"
-
-	"github.com/gorilla/websocket"
 )
-
-type RawMessage struct {
-	Act   string `json:"action"`
-	Value string `json:"value"`
-	Type  string `json:"type"`
-}
-
-type Message struct {
-	Act    string
-	Value  string
-	RoomId int
-	UserId int
-	Type   string
-}
-
-type Client struct {
-	roomId   int
-	userId   int
-	conn     *websocket.Conn
-	messages chan Message
-}
-
-type Room struct {
-	cl    map[int]*Client
-	ready map[int]interface{}
-	game  *GameSession
-
-	alerts chan Message
-	enter  chan *Client
-	leave  chan *Client
-}
 
 func (r *Room) Run() {
 	defer close(r.alerts)
@@ -48,7 +16,7 @@ func (r *Room) Run() {
 
 			r.alerts <- Message{
 				Act:    "enter",
-				Value:  fmt.Sprint(cl.userId),
+				Value:  JSONContent{"content": fmt.Sprint(cl.userId)},
 				RoomId: cl.roomId,
 				UserId: cl.userId,
 			}
@@ -60,14 +28,14 @@ func (r *Room) Run() {
 
 			r.alerts <- Message{
 				Act:    "left",
-				Value:  fmt.Sprint(cl.userId),
+				Value:  JSONContent{"content": fmt.Sprint(cl.userId)},
 				RoomId: cl.roomId,
 				UserId: cl.userId,
 			}
 			r.ready = make(map[int]interface{})
 
 		case ms := <-r.alerts:
-			if ms.Type == "game" {
+			if ms.Type == Game {
 				fmt.Println(ms)
 
 				r.game.moves <- ms
@@ -81,7 +49,7 @@ func (r *Room) Run() {
 					if len(r.ready) == len(r.cl) {
 
 						r.game = NewGameSession(r)
-						r.game.moves <- Message{Act: "start", Value: "game started"}
+						r.game.moves <- Message{Act: "start", Value: JSONContent{"content": "game started"}}
 
 						go r.game.Run()
 					}
@@ -107,13 +75,13 @@ func (cl *Client) ReadMessages(r *Room) {
 		err := cl.conn.ReadJSON(&cont)
 
 		if err != nil {
-			fmt.Println(err.Error())
+			fmt.Println("llll:", err.Error(), cont)
 			break
 		}
 
 		r.alerts <- Message{
 			Act:    cont.Act,
-			Value:  cont.Value,
+			Value:  JSONContent{"content": cont.Value},
 			Type:   cont.Type,
 			RoomId: cl.roomId,
 			UserId: cl.userId,
@@ -127,7 +95,9 @@ func (cl *Client) WriteMessages() {
 
 		ms := <-cl.messages
 
-		err := cl.conn.WriteJSON(RawMessage{Act: ms.Act, Value: ms.Value})
+		cont, _ := json.Marshal(ms.Value)
+		err := cl.conn.WriteJSON(RawMessage{Act: ms.Act, Value: string(cont[:])})
+		fmt.Println(string(cont[:]))
 		if err != nil {
 			fmt.Println(err.Error())
 			break

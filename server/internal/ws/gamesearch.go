@@ -19,7 +19,9 @@ var upgrader = websocket.Upgrader{
 func (h *Handler) GetRooms(c echo.Context) error {
 	al := make([]int, 0, len(h.rooms))
 	for el := range h.rooms {
-		al = append(al, el)
+		if h.rooms[el].game == nil {
+			al = append(al, el)
+		}
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{"lst": al})
@@ -62,6 +64,10 @@ func (h *Handler) CreateRoom(c echo.Context) error {
 func (h *Handler) EnterRoom(c echo.Context) error {
 	userId, _ := strconv.Atoi(c.Param("userId"))
 	roomId, _ := strconv.Atoi(c.Param("roomId"))
+
+	if h.rooms[roomId].game != nil {
+		return c.JSON(http.StatusForbidden, "игра в этой комнате уже началась")
+	}
 
 	conn, err := upgrader.Upgrade(c.Response(), c.Request(), nil)
 

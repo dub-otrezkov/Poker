@@ -1,11 +1,27 @@
-import React, {useEffect, useMemo, useState} from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useCookies } from "react-cookie";
 import { API_URL, WS_URL } from "../../../constants/main";
 import Card from "./cards/cardRenderer";
+import { parse } from "path";
+
+type JSONMap = string | Map<string, JSONMap>
+
+function toJSONMap(current: any): JSONMap {
+    if (typeof(current) === 'string') {
+        return current;
+    } else if (typeof(current) === 'object' && current !== null) {
+        const result = new Map<string, JSONMap>();
+        for (const [key, value] of Object.entries(current)) {
+            result.set(key, toJSONMap(value));
+        }
+        return result;
+    }
+    return "";
+}
 
 type Message = {
     action: string,
-    value: string,
+    value: JSONMap,
 }
 
 type Player = {
@@ -15,12 +31,12 @@ type Player = {
     cur_bid: number,
 }
 
-function PlayerComp({p} : {p: Player}) {
+function PlayerComp({ p }: { p: Player }) {
     // false - folded
     // true - active
     if (p.status) {
         return (
-            <div style={{display: "inline-block"}}>
+            <div style={{ display: "inline-block" }}>
                 <p>{p.id}</p>
                 <p>ставка: {p.cur_bid}</p>
                 <p>баланс: {p.bal}</p>
@@ -28,7 +44,7 @@ function PlayerComp({p} : {p: Player}) {
         )
     } else {
         return (
-            <div style={{display: "inline-block"}}>
+            <div style={{ display: "inline-block" }}>
                 <p>{p.id}</p>
                 <p>покинул игру</p>
                 <p>баланс: {p.bal}</p>
@@ -50,7 +66,7 @@ export default function GamePage(props: Map<string, string>) {
     let [isStarted, setIsStarted] = useState<boolean>(false);
     let [cards, setCards] = useState<Array<() => React.ReactNode>>([() => (<></>)])
     let [open, setOpen] = useState<Array<() => React.ReactNode>>([])
-    let [bid, setBid] = useState<{show: Boolean, bid: number}>({show: false, bid: 0})
+    let [bid, setBid] = useState<{ show: Boolean, bid: number }>({ show: false, bid: 0 })
     let [playersInfo, setPlayersInfo] = useState<Array<Player>>([]);
 
     let [balance, setBalance] = useState<number>(0);
@@ -65,79 +81,124 @@ export default function GamePage(props: Map<string, string>) {
         let s = st.length;
 
         st.forEach(m => {
-        console.log(`::: ${m.action} ${m.value}`);
+            console.log(`::: ${m.action} ${m.value}`);
 
-        switch (m.action) {
-            case "start":
+            let content: Map<string, JSONMap> = (m.value as Map<string, JSONMap>);
+            // const content: JSONMap = new Map<string, JSONMap>(JSON.parse(m.value));
 
-                let np: Array<Player> = [];
-                players.forEach(el => {
-                    np.push({id: el, status: true, bal: 5000, cur_bid: 0} as Player);
-                })
-                setPlayersInfo(np);
-                setIsStarted(true);
-                break
-            case "enter":
+            if (content == null) {
+                return;
+            }
+            // console.log(typeof(m.value as Map<string, JSONMap>).get("content"));
+            // console.log(typeof(content as Map<string, JSONMap>));
+
+            switch (m.action) {
+                case "start":
+
+                    let np: Array<Player> = [];
+                    players.forEach(el => {
+                        np.push({ id: el, status: true, bal: 5000, cur_bid: 0 } as Player);
+                    })
+                    setPlayersInfo(np);
+                    setIsStarted(true);
+                    break
+                case "enter":
+
+                    console.log(content.get("content"));
+
+                    setPlayers(tp => {
+                        if (tp.indexOf(parseInt(content.get("content") as string)) == -1) {
+                            tp.push(parseInt(content.get("content") as string));
+                        }
+                        return tp;
+                    });
+                    setIsStarted(false);
+                    break
+                case "left":
+                    setIsStarted(false);
+                    setPlayers(players => {
+                        let nw: Array<number> = [];
+                        for (const player of players) {
+                            if (player != parseInt(content.get("content") as string)) {
+                                nw.push(player)
+                            }
+                        }
+                        return nw;
+                    });
+                    break
+                case "distr":
+                    let r1 = parseInt((content.get("content") as Map<string, JSONMap>).get("rank1") as string)
+                    let s1 = parseInt((content.get("content") as Map<string, JSONMap>).get("suit1") as string)
+                    let r2 = parseInt((content.get("content") as Map<string, JSONMap>).get("rank2") as string)
+                    let s2 = parseInt((content.get("content") as Map<string, JSONMap>).get("suit2") as string)
                 
-                setPlayers(tp => {
-                    if (tp.indexOf(parseInt(m.value)) == -1) {
-                        tp.push(parseInt(m.value));
+                    console.log(`${r1} ${s1} ${r2} ${s2}`);
+
+                    setCards([() => Card({v: r1, c: s1}), () => Card({v: r2, c: s2})])
+                    break;
+                case "make_bid":
+
+                    if (content.get("content") == "allin") {
+                        setBid({show: true, bid: -1});
+                    } else {
+                        setBid({show: true, bid: parseInt(content.get("content") as string)});
                     }
-                    return tp;
-                });
-                setIsStarted(false);
-                break
-            case "left":
+                    break;
+                case "add_card":
 
-                setIsStarted(false);
-                setPlayers(players => {
-                    let nw: Array<number> = [];
-                    for (let i = 0; i < players.length; i++) {
-                        if (players[i] != parseInt(m.value)) {
-                            nw.push(players[i])
-                        }
+                    // console.log(content);
+
+                    let r = parseInt(content.get("rank") as string);
+                    let s = parseInt(content.get("suit") as string);
+                    
+                    // console.log(r, s);
+
+                    setOpen(open => [...open, () => Card({v: r, c: s})]);
+                    for (let i = 0; i < playersInfo.length; i++) {
+                        setPlayersInfo(pl => {
+                            pl[i].cur_bid = 0;
+                            return pl;
+                        });
                     }
-                    return nw;
-                });
-                break
-            case "distr":
+                    break;
+                case "uuinfo":
 
-                let [v1, c1, v2, c2] = m.value.split(" ");
-                setCards([() => Card({v: parseInt(v1), c: parseInt(c1)}), () => Card({v: parseInt(v2), c: parseInt(c2)})])
-                break;
-            case "make_bid":
+                    let uid = parseInt(content.get("uid") as string)
 
-                if (m.value == "allin") {
-                    setBid({show: true, bid: -1});
-                } else {
-                    setBid({show: true, bid: parseInt(m.value)});
-                }
-                break;
-            case "add_card":
+                    console.log(`kkkkk ${uid}`);
+                    console.log(content);
 
-                let [t1, g1] = m.value.split(" ");
-                setOpen(open => [...open, () => Card({v: parseInt(t1), c: parseInt(g1)})]);
-                for (let i = 0; i < playersInfo.length; i++) {
-                    setPlayersInfo(pl => {
-                        pl[i].cur_bid = 0;
-                        return pl;
-                    });
-                }
-                break;
-            case "new_bid":
+                    setPlayersInfo(prev => {
+                        prev.forEach(el => {
+                            if (el.id == uid) {
+                                if (content.has("bal")) {
+                                    el.bal = parseInt(content.get("bal") as string);
+                                }
+                                if (content.has("cur_bid")) {
+                                    el.cur_bid = parseInt(content.get("cur_bid") as string);
+                                }
+                            }
+                        });
 
-                let [uid, bd] = m.value.split(' ').map(el => parseInt(el));
-                setBalance(bal => bal + bd);
-                setPlayersInfo(prev => {
-                    prev.forEach(el => {
-                        if (el.id == uid) {
-                            el.bal -= bd;
-                            el.cur_bid = Math.max(el.cur_bid, bd);
-                        }
+                        return prev;
                     });
 
-                    return prev;
-                });
+                    // let [uid, bd] = m.value.split(' ').map(el => parseInt(el));
+                    // setBalance(bal => bal + bd);
+                    // setPlayersInfo(prev => {
+                    //     prev.forEach(el => {
+                    //         if (el.id == uid) {
+                    //             el.bal -= bd;
+                    //             el.cur_bid = Math.max(el.cur_bid, bd);
+                    //         }
+                    //     });
+
+                    //     return prev;
+                    // });
+                    break;
+                case "finish":
+
+                    break;
             }
         });
 
@@ -148,26 +209,26 @@ export default function GamePage(props: Map<string, string>) {
         let tU: Array<number> = players.slice();
 
         (async () => {
-            
+
 
             await fetch(`${API_URL}/getRoomMembers/${id}`)
-            .then(resp => {
-                if (resp.ok) return resp.json();
-                else return {"users": []};
-            })
-            .then(resp => {
-                if (tU.indexOf(userId.userId) == -1) {
-                    tU.push(userId.userId)
-                }
-                // console.log("...." + String(resp["users"]) + String(players));
-                for (let i = 0; i < resp["users"].length; i++) {
-                    if (tU.indexOf(resp["users"][i]) == -1) {
-                        tU.push(resp["users"][i]);
+                .then(resp => {
+                    if (resp.ok) return resp.json();
+                    else return { "users": [] };
+                })
+                .then(resp => {
+                    if (tU.indexOf(userId.userId) == -1) {
+                        tU.push(userId.userId)
                     }
-                }
-                let tp = tU.slice();
-                setPlayers(tp);
-            })
+                    // console.log("...." + String(resp["users"]) + String(players));
+                    for (let i = 0; i < resp["users"].length; i++) {
+                        if (tU.indexOf(resp["users"][i]) == -1) {
+                            tU.push(resp["users"][i]);
+                        }
+                    }
+                    let tp = tU.slice();
+                    setPlayers(tp);
+                })
 
             ws = new WebSocket(`${WS_URL}/enterRoom/${localStorage.getItem("wslink") || ""}`);
 
@@ -177,9 +238,15 @@ export default function GamePage(props: Map<string, string>) {
             }
 
             ws.onmessage = (e: MessageEvent) => {
-                let m: Message = JSON.parse(e.data);
+                const parsed = JSON.parse(e.data);
+    
+                let m: Message = {
+                    action: parsed.action,
+                    value: toJSONMap(JSON.parse(parsed.value)),
+                }
                 // setSt([...st, m]);
-                console.log(`got message: ${m.action}`);
+                console.log(`got message: ${m.value} ${typeof m.value}`);
+                console.log(m.value);
                 setSt(st => [...st, m]);
                 // upd(m);
             }
@@ -196,16 +263,16 @@ export default function GamePage(props: Map<string, string>) {
 
     return (
         <div>
-            <button onClick={() => {window.location.replace("/")}}>назад</button>
+            <button onClick={() => { window.location.replace("/") }}>назад</button>
             <p>комната №{id}</p>
             <h3>в игре сейчас пользователи: {players.map((elem) => (
-                    <>{elem}, </>
-                ))}
+                <>{elem}, </>
+            ))}
             </h3>
-            
-            <br/>
 
-            <button id={isStarted ? "inActive":""} onClick={
+            <br />
+
+            <button id={isStarted ? "inActive" : ""} onClick={
                 () => {
                     if (ws === null) return;
                     if (isStarted) return;
@@ -243,15 +310,15 @@ export default function GamePage(props: Map<string, string>) {
                             ))}
                         </div>
 
-                        <div> 
+                        <div>
                             <h3>Открытые карты</h3>
                             <>{open.map(elem => elem())}</>
                         </div>
 
                         <div>
-                            <button onClick={() => {setVis(!vis)}}>показать карты</button>
-                                <br />
-                            <>{cards.map(elem => (vis ? elem():() => (<></>)))}</>
+                            <button onClick={() => { setVis(!vis) }}>показать карты</button>
+                            <br />
+                            <>{cards.map(elem => (vis ? elem() : () => (<></>)))}</>
                         </div>
 
 
@@ -262,31 +329,31 @@ export default function GamePage(props: Map<string, string>) {
                                     <div>
                                         <button onClick={() => {
                                             ws?.send(JSON.stringify({
-                                                action: "bid", 
+                                                action: "bid",
                                                 value: "-1",
                                                 type: "game"
                                             }));
-                                            setBid({show: false, bid: 0});
+                                            setBid({ show: false, bid: 0 });
 
                                         }}>
                                             All-in
                                         </button>
-                                            
+
                                         <button onClick={() => {
                                             ws?.send(JSON.stringify({
-                                                action: "bid", 
+                                                action: "bid",
                                                 value: "0",
                                                 type: "game"
                                             }));
-                                            setBid({show: false, bid: 0});
+                                            setBid({ show: false, bid: 0 });
                                         }}>сложить карты</button>
                                     </div>
-                                    
+
                                 )
                             } else {
                                 return (
                                     <div>
-                                        <input type="number" max={bid.bid} id="bid_value"/>
+                                        <input type="number" max={bid.bid} id="bid_value" />
                                         <button onClick={() => {
                                             let t = (document.getElementById("bid_value") as HTMLInputElement).value;
 
@@ -295,7 +362,7 @@ export default function GamePage(props: Map<string, string>) {
                                                 return;
                                             }
 
-                                            setBid({show: false, bid: 0});
+                                            setBid({ show: false, bid: 0 });
                                             ws?.send(JSON.stringify({
                                                 action: "bid",
                                                 value: t,
@@ -304,17 +371,17 @@ export default function GamePage(props: Map<string, string>) {
                                         }}>подтвердить</button>
 
                                         <br />
-                                        
+
                                         <button onClick={() => {
                                             ws?.send(JSON.stringify({
-                                                action: "bid", 
+                                                action: "bid",
                                                 value: "0",
                                                 type: "game"
                                             }));
-                                            setBid({show: false, bid: 0});
+                                            setBid({ show: false, bid: 0 });
                                         }}>сложить карты</button>
                                     </div>
-                                    
+
                                 )
                             }
                         })()}

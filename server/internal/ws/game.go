@@ -75,8 +75,9 @@ var basic_deck = [...]Card{
 var mins = map[string]int{"": 0, "small blind": 10, "big blind": 20}
 
 type Player struct {
-	bal     int
-	active  bool
+	bal    int
+	active bool
+
 	cur_bid int
 
 	cards  [2]Card
@@ -161,7 +162,14 @@ func (g *GameSession) Run() {
 					RoomId: -1,
 					Act:    "distr",
 					UserId: el,
-					Value:  fmt.Sprintf("%v %v %v %v", g.players[el].cards[0].rank, g.players[el].cards[0].suit, g.players[el].cards[1].rank, g.players[el].cards[1].suit),
+					Value: JSONContent{
+						"content": JSONContent{
+							"rank1": fmt.Sprint(g.players[el].cards[0].rank),
+							"suit1": fmt.Sprint(g.players[el].cards[0].suit),
+							"rank2": fmt.Sprint(g.players[el].cards[1].rank),
+							"suit2": fmt.Sprint(g.players[el].cards[1].suit),
+						},
+					},
 				}
 			}
 
@@ -185,7 +193,6 @@ func (g *GameSession) Run() {
 								ok = false
 							}
 						}
-
 						if ok {
 							break
 						}
@@ -196,28 +203,50 @@ func (g *GameSession) Run() {
 							continue
 						}
 
-						if max(mins[g.players[cur_u].role], g.cur_bid) >= g.players[cur_u].bal {
-							g.moves <- Message{Act: "make_bid", Value: "allin", UserId: cur_u}
+						cur_player := g.players[cur_u]
+
+						if max(mins[cur_player.role], g.cur_bid-cur_player.cur_bid) >= cur_player.bal {
+							g.moves <- Message{
+								Act: "make_bid",
+								Value: JSONContent{
+									"content": "allin",
+								},
+								UserId: cur_u,
+							}
 						} else {
-							g.moves <- Message{Act: "make_bid", Value: fmt.Sprint(max(mins[g.players[cur_u].role], g.cur_bid)), UserId: cur_u}
+							g.moves <- Message{
+								Act: "make_bid",
+								Value: JSONContent{
+									"content": fmt.Sprint(max(mins[cur_player.role], g.cur_bid)),
+								},
+								UserId: cur_u,
+							}
 						}
 
 						b := <-bids
-						if b > 0 {
+						if b != 0 {
+							if b < 0 {
+								b = cur_player.bal
+								cnt_u--
+							}
+							g.bank += b - cur_player.cur_bid
 							g.cur_bid = max(g.cur_bid, b)
-							g.bank += b
-							g.players[cur_u].cur_bid = b
-							g.players[cur_u].bal -= b
 
-						} else if b == -1 {
-							b = g.players[cur_u].bal
-							g.cur_bid = max(g.cur_bid, b)
-							g.bank += b
-							g.players[cur_u].cur_bid = b
-							g.players[cur_u].bal -= b
-							cnt_u--
+							cur_player.bal -= b - cur_player.cur_bid
+							cur_player.cur_bid = b
+
+							// fmt.Println("dkkdkdkkdkdkdkdkdkd", b)
+
+							g.moves <- Message{
+								Act: "uuinfo",
+								Value: JSONContent{
+									"uid":     fmt.Sprint(cur_u),
+									"bal":     fmt.Sprint(cur_player.bal),
+									"cur_bid": fmt.Sprint(cur_player.cur_bid),
+								},
+							}
 						} else {
-							g.players[cur_u].active = false
+							cur_player.active = false
 							cnt_u--
 						}
 
@@ -235,14 +264,26 @@ func (g *GameSession) Run() {
 							x := g.pop()
 							al_cards = append(al_cards, x)
 
-							g.moves <- Message{Act: "add_card", Value: fmt.Sprintf("%v %v", x.rank, x.suit)}
+							g.moves <- Message{
+								Act: "add_card",
+								Value: JSONContent{
+									"rank": fmt.Sprint(x.rank),
+									"suit": fmt.Sprint(x.suit),
+								},
+							}
 						}
 					} else if g.cur_st < 3 {
 
 						x := g.pop()
 						al_cards = append(al_cards, x)
 
-						g.moves <- Message{Act: "add_card", Value: fmt.Sprintf("%v %v", x.rank, x.suit)}
+						g.moves <- Message{
+							Act: "add_card",
+							Value: JSONContent{
+								"rank": fmt.Sprint(x.rank),
+								"suit": fmt.Sprint(x.suit),
+							},
+						}
 					} else {
 
 						goto end
@@ -268,6 +309,10 @@ func (g *GameSession) Run() {
 					sort.Slice(t, func(i, j int) bool {
 						return t[i].rank <= t[j].rank
 					})
+
+					if len(t) != 7 {
+						continue
+					}
 
 					for i := 0; i < len(t); i++ {
 						for j := i + 1; j < len(t); j++ {
@@ -393,10 +438,48 @@ func (g *GameSession) Run() {
 					return less(al_res[i][1:], al_res[j][1:])
 				})
 
-				if len(al_res) > 1 && eq(al_res[len(al_res)-1][1:], al_res[len(al_res)-2][1:]) {
-					g.moves <- Message{Act: "finish", Value: "draw"}
-				} else {
-					g.moves <- Message{Act: "finish", Value: fmt.Sprint(al_res[len(al_res)-1][0])}
+				winners := make(map[int]interface{})
+				sm_w := 0
+				sm_l := 0
+				for _, el := range al_res {
+					id := el[0]
+					if eq(el[1:], al_res[len(al_res)-1][1:]) {
+						winners[id] = nil
+						sm_w += g.players[id].cur_bid
+					} else {
+						sm_l += g.players[id].cur_bid
+					}
+				}
+				fmt.Println("winners are", winners)
+				payed := 0
+				for player := range g.players {
+					if _, ok := winners[player]; ok {
+						g.players[player].bal += g.players[player].cur_bid * g.bank / sm_w
+						payed += g.players[player].cur_bid * g.bank / max(1, sm_w)
+						g.players[player].cur_bid = 0
+						g.moves <- Message{
+							Act: "uuinfo",
+							Value: JSONContent{
+								"uid":     fmt.Sprint(player),
+								"bal":     fmt.Sprint(g.players[player].bal),
+								"cur_bid": "0",
+							},
+						}
+					}
+				}
+				for player := range g.players {
+					if _, ok := winners[player]; !ok {
+						g.players[player].bal += g.players[player].cur_bid * (g.bank - payed) / max(1, sm_l)
+						g.players[player].cur_bid = 0
+						g.moves <- Message{
+							Act: "uuinfo",
+							Value: JSONContent{
+								"uid":     fmt.Sprint(player),
+								"bal":     fmt.Sprint(g.players[player].bal),
+								"cur_bid": "0",
+							},
+						}
+					}
 				}
 			}()
 		case "distr":
@@ -405,21 +488,28 @@ func (g *GameSession) Run() {
 		case "make_bid":
 
 			g.players[cl.UserId].client.messages <- cl
-		case "new_turn":
-
-			// for el := range g.players {
-			// 	g.players[el].client.messages <- cl
-			// }
 		case "bid":
 
-			val, _ := strconv.Atoi(cl.Value)
+			// fmt.Println("hhhghghhgh", cl)
+
+			// for _, player := range g.players {
+			// 	player.client.messages <- cl
+			// }
+
+			val, _ := strconv.Atoi(cl.Value["content"].(string))
 			bids <- val
 
-			for _, el := range g.players {
-				el.client.messages <- Message{
-					Act:   "new_bid",
-					Value: fmt.Sprintf("%v %v", cl.UserId, val),
-				}
+			// for _, el := range g.players {
+			// 	el.client.messages <- Message{
+			// 		Act:   "new_bid",
+			// 		Value: JSONContent{"content": fmt.Sprintf("%v %v", cl.UserId, val)},
+			// 	}
+			// }
+		case "uuinfo":
+			fmt.Println("hhhghghhgh", cl)
+
+			for _, player := range g.players {
+				player.client.messages <- cl
 			}
 		case "add_card":
 
@@ -427,21 +517,8 @@ func (g *GameSession) Run() {
 				el.client.messages <- cl
 			}
 		case "finish":
-
-			if cl.Value == "draw" {
-				for _, el := range g.players {
-					el.client.messages <- Message{Act: "finish", Value: "draw"}
-				}
-			} else {
-				x, _ := strconv.Atoi(cl.Value)
-
-				for id, el := range g.players {
-					if id == x {
-						el.client.messages <- Message{Act: "finish", Value: "win"}
-					} else {
-						el.client.messages <- Message{Act: "finish", Value: "lose"}
-					}
-				}
+			for _, el := range g.players {
+				el.client.messages <- Message{Act: "finish", Value: cl.Value}
 			}
 			alive = false
 		}
