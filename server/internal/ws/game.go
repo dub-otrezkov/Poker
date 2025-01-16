@@ -235,8 +235,6 @@ func (g *GameSession) Run() {
 							cur_player.bal -= b - cur_player.cur_bid
 							cur_player.cur_bid = b
 
-							// fmt.Println("dkkdkdkkdkdkdkdkdkd", b)
-
 							g.moves <- Message{
 								Act: "uuinfo",
 								Value: JSONContent{

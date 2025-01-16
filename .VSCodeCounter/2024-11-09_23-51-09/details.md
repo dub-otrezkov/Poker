@@ -1,10 +1,10 @@
 # Details
 
-Date : 2024-10-11 13:56:22
+Date : 2024-11-09 23:51:09
 
 Directory d:\\GitHub\\Chess
 
-Total : 38 files,  21440 codes, 89 comments, 452 blanks, all 21981 lines
+Total : 38 files,  21439 codes, 73 comments, 444 blanks, all 21956 lines
 
 [Summary](results.md) / Details / [Diff Summary](diff.md) / [Diff Details](diff-details.md)
 
@@ -44,7 +44,7 @@ Total : 38 files,  21440 codes, 89 comments, 452 blanks, all 21981 lines
 | [server/internal/app/main.go](/server/internal/app/main.go) | Go | 23 | 0 | 10 | 33 |
 | [server/internal/database/auth.go](/server/internal/database/auth.go) | Go | 31 | 0 | 15 | 46 |
 | [server/internal/database/main.go](/server/internal/database/main.go) | Go | 45 | 0 | 12 | 57 |
-| [server/internal/ws/game.go](/server/internal/ws/game.go) | Go | 425 | 33 | 92 | 550 |
+| [server/internal/ws/game.go](/server/internal/ws/game.go) | Go | 424 | 17 | 84 | 525 |
 | [server/internal/ws/gamesearch.go](/server/internal/ws/gamesearch.go) | Go | 70 | 0 | 22 | 92 |
 | [server/internal/ws/main.go](/server/internal/ws/main.go) | Go | 102 | 0 | 24 | 126 |
 | [server/internal/ws/websockets.go](/server/internal/ws/websockets.go) | Go | 83 | 0 | 24 | 107 |
