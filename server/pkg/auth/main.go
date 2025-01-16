@@ -39,9 +39,6 @@ func (auth *Auth) Login(c echo.Context) error {
 	}
 	cor, err := auth.db.GetUser(qr["login"])
 
-	// c.Logger().Print(cor)
-	// c.Logger().Print(qr)
-
 	if err == nil && cor["pswd"] == hasher.CalcSha256(qr["password"]) {
 		return c.JSON(http.StatusOK, map[string]interface{}{"id": cor["id"]})
 	} else {

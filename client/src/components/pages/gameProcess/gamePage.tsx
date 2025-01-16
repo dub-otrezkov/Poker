@@ -84,13 +84,10 @@ export default function GamePage(props: Map<string, string>) {
             console.log(`::: ${m.action} ${m.value}`);
 
             let content: Map<string, JSONMap> = (m.value as Map<string, JSONMap>);
-            // const content: JSONMap = new Map<string, JSONMap>(JSON.parse(m.value));
 
             if (content == null) {
                 return;
             }
-            // console.log(typeof(m.value as Map<string, JSONMap>).get("content"));
-            // console.log(typeof(content as Map<string, JSONMap>));
 
             switch (m.action) {
                 case "start":
@@ -146,12 +143,8 @@ export default function GamePage(props: Map<string, string>) {
                     break;
                 case "add_card":
 
-                    // console.log(content);
-
                     let r = parseInt(content.get("rank") as string);
                     let s = parseInt(content.get("suit") as string);
-                    
-                    // console.log(r, s);
 
                     setOpen(open => [...open, () => Card({v: r, c: s})]);
                     for (let i = 0; i < playersInfo.length; i++) {
@@ -183,18 +176,6 @@ export default function GamePage(props: Map<string, string>) {
                         return prev;
                     });
 
-                    // let [uid, bd] = m.value.split(' ').map(el => parseInt(el));
-                    // setBalance(bal => bal + bd);
-                    // setPlayersInfo(prev => {
-                    //     prev.forEach(el => {
-                    //         if (el.id == uid) {
-                    //             el.bal -= bd;
-                    //             el.cur_bid = Math.max(el.cur_bid, bd);
-                    //         }
-                    //     });
-
-                    //     return prev;
-                    // });
                     break;
                 case "finish":
 
@@ -220,7 +201,6 @@ export default function GamePage(props: Map<string, string>) {
                     if (tU.indexOf(userId.userId) == -1) {
                         tU.push(userId.userId)
                     }
-                    // console.log("...." + String(resp["users"]) + String(players));
                     for (let i = 0; i < resp["users"].length; i++) {
                         if (tU.indexOf(resp["users"][i]) == -1) {
                             tU.push(resp["users"][i]);
@@ -244,15 +224,11 @@ export default function GamePage(props: Map<string, string>) {
                     action: parsed.action,
                     value: toJSONMap(JSON.parse(parsed.value)),
                 }
-                // setSt([...st, m]);
                 console.log(`got message: ${m.value} ${typeof m.value}`);
                 console.log(m.value);
                 setSt(st => [...st, m]);
-                // upd(m);
             }
         })()
-
-        // alert(players);
     }, [])
 
     useEffect(upd, [st])
@@ -318,7 +294,7 @@ export default function GamePage(props: Map<string, string>) {
                         <div>
                             <button onClick={() => { setVis(!vis) }}>показать карты</button>
                             <br />
-                            <>{cards.map(elem => (vis ? elem() : () => (<></>)))}</>
+                            <>{cards.map(elem => vis ? elem():<></>)}</>
                         </div>
 
 
